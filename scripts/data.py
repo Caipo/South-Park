@@ -7,11 +7,9 @@ import numpy as np
 import fasttext
 import torch
 
-data_dir = Path(r'/Users/work/Data/NLP/')
-data_path = data_dir / 'All-seasons.csv'
 
 def get_pandas():
-    data_path = Path(r'/Users/work/Data/NLP/cleaned.csv')
+    data_path = Path(r'/home/jin/Data/cleaned.csv')
     data = list() 
     df = pd.read_csv(data_path)
     df.columns = ['Season', 'Episode', 'Character', 'Line'] 
