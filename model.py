@@ -12,7 +12,7 @@ class LSTM(nn.Module):
                             batch_first=True)
         
         self.fc = nn.Linear(hidden_size, output_size)
-    
+
     def forward(self, x):
         # Forward pass through the LSTM layer
         lstm_out, _ = self.lstm(x)
@@ -22,6 +22,6 @@ class LSTM(nn.Module):
         
         # Fully connected layer
         fc = self.fc(lstm_out)
-        output = nn.functional.sigmoid(fc)
+        output = torch.sigmoid(fc)
         return output
 

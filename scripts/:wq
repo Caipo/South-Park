@@ -1,0 +1,122 @@
+from pathlib import Path
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from huggingface_hub import hf_hub_download
+from gensim.models import KeyedVectors
+from glob import glob
+import numpy as np
+import fasttext
+from pathlib import Path
+from sklearn.utils import shuffle
+from tqdm import tqdm
+
+def get_word_model():
+    import gensim 
+    from gensim.models import KeyedVectors
+
+    hf_hub_download(
+        repo_id="fse/glove-twitter-200",
+        filename="glove-twitter-200.model.vectors.npy"
+        )
+
+    model_path = hf_hub_download(
+        repo_id="fse/glove-twitter-200",
+        filename="glove-twitter-200.model"
+        )
+
+    model = KeyedVectors.load(model_path)
+    return model
+
+
+    
+
+def get_pandas():
+    model = get_word_model()
+    #words = set(model.words)
+    
+    data_path = Path(r'/home/jin/Data/cleaned.csv')
+    data = list() 
+    df = pd.read_csv(data_path)
+    df.columns = ['Season', 'Episode', 'Character', 'Line'] 
+
+    df['Line'] = df['Line'].str.replace(',', '')
+    df['Line'] = df['Line'].str.strip()
+
+    return df
+
+def make_numpy(train_set = True):
+    df = get_pandas()  
+    # Selecting so there equal in size 
+
+    df = df[df['Line'].str.split().str.len().gt(2)] 
+    #df = df[df['Line'].str.split().str.len().lt(200)] 
+
+    kyle = df[df['Character'] == 'Kyle']   
+    cartman = df[df['Character'] == 'Cartman']
+    
+    
+    if len(kyle) > len(cartman):
+        kyle = kyle.sample(len(cartman))
+    else:
+        cartman = cartman.sample(len(kyle))
+
+
+    # Suffling and joining 
+    df = pd.concat([kyle, cartman])
+
+
+    fasttext.FastText.eprint = lambda x: None
+
+    lines = df[['Line', 'Character']]
+
+    quiz(lines)
+    model = get_word_model() 
+    train, test = train_test_split(df, random_state=42, test_size = 0.2)
+
+    if train_set:
+        lines = train
+
+    else:
+        lines = test
+    
+
+    
+    character = 0 
+    vocab = set(model.key_to_index)
+
+    for idx, row in tqdm(lines.iterrows()):
+
+        vec = list()
+        
+        sentence = [x for x in row['Line'].split(' ')]
+        vec = [model[x] for x in sentence if x in vocab]
+        
+        breakpoint()
+
+        vec = vec + [ np.zeros(200) for i in range(156 - len(vec))]
+        vec = np.array(vec)
+
+
+        if row['Character'] == 'Kyle':
+            character = 1
+        else:
+            character = 0
+
+        
+        x = np.array(vec)
+        #x = np.expand_dims(np.array(x), 1)
+
+        if train_set:
+            folder = 'Train'
+        else:
+            folder = 'Test'
+
+        y = np.array([character])
+        y = np.expand_dims(np.array(y), 1)
+
+        np.save( f'/home/jin/Data/{folder}/{str(idx)}.npy', x)
+        np.save( f'/home/jin/Data/{folder}/{str(idx)}_y.npy', y)
+
+if __name__ == '__main__':
+    make_numpy() 
+    make_numpy(train_set = False)
